@@ -1,8 +1,9 @@
-import * as cdk from "@aws-cdk/core";
-import * as secretsmanager from "@aws-cdk/aws-secretsmanager";
+import * as cdk from "aws-cdk-lib";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
+import { Construct } from "constructs";
 
 export class CDKStack extends cdk.Stack {
-  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     // Create a new secret
