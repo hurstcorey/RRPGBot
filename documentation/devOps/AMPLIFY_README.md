@@ -18,6 +18,7 @@ AWS Amplify Gen 2 introduces a TypeScript-based, code-first developer experience
 - Use `generateClient` for typed CRUD operations in frontend code.
 
 Example:
+
 ```typescript
 const schema = a.schema({
   Chat: a.model({
@@ -39,6 +40,7 @@ const schema = a.schema({
 - Integrates with Amazon Cognito.
 
 Example:
+
 ```typescript
 export const auth = defineAuth({
   loginWith: {

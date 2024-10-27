@@ -15,36 +15,43 @@ This guide will help you set up your local development environment for working w
 1. **Install AWS CLI**:
    - Download and install the AWS CLI. [AWS CLI Installation Guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
    - Configure AWS CLI with your credentials:
-     ```
+
+     ```BASH
      aws configure
      ```
 
 2. **Install Amplify CLI**:
-   ```
+
+   ```BASH
    npm install -g @aws-amplify/cli@latest
    ```
 
 3. **Configure Amplify**:
-   ```
+
+   ```BASH
    amplify configure
    ```
+
    Follow the prompts to set up an IAM user.
 
 ## Project Setup
 
 1. **Create a new React project**:
-   ```
+
+   ```BASH
    npx create-react-app@latest amplify-app
    cd amplify-app
    ```
 
 2. **Initialize Amplify in your project**:
-   ```
+
+   ```BASH
    amplify init
    ```
 
 3. **Add Amplify libraries**:
-   ```
+
+   ```BASH
    npm install aws-amplify
    ```
 
@@ -55,6 +62,7 @@ This guide will help you set up your local development environment for working w
 2. **Configure authentication** in `amplify/auth/resource.ts`
 
 3. **Use Amplify in your React components**:
+
    ```javascript
    import { Amplify } from 'aws-amplify';
    import config from './amplifyconfiguration.json';
@@ -62,12 +70,14 @@ This guide will help you set up your local development environment for working w
    ```
 
 4. **Generate API client**:
+
    ```javascript
    import { generateClient } from 'aws-amplify/api';
    const client = generateClient();
    ```
 
 5. **Use the client for data operations**:
+
    ```javascript
    const result = await client.models.Todo.create({
      content: 'Hello world!',
@@ -90,3 +100,7 @@ This guide will help you set up your local development environment for working w
 - [AWS Amplify Community](https://amplify.aws/community/)
 
 Remember to never commit sensitive information like AWS credentials to your repository. Use environment variables or AWS Secrets Manager for managing sensitive data.
+
+- Copy "./.env.example" to a "./.env" file
+- Replace the parameters with local dev values.
+  - See AWS_SECRET_MANAGER_README.md

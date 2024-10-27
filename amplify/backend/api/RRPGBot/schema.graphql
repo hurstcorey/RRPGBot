@@ -1,0 +1,16 @@
+type Item @model @auth(rules: [{allow: public}]) {
+  id: ID!
+  name: String
+  description: String
+  level: Int
+  cost_amount: Int
+  rarity_id: String
+  item_type_id: String
+  magic_element_id: String
+  character_attribute_id: String
+  character_attribute_modifer: Int
+  cursed_id: String
+  insert_timestamp_UTC: AWSDateTime
+  update_timestamp_UTC: AWSDateTime
+}
+ 

@@ -1,0 +1,23 @@
+{
+  "staging": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-rrpgbot-staging-14657-authRole",
+      "UnauthRoleArn": "arn:aws:iam::001559332385:role/amplify-rrpgbot-staging-14657-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::001559332385:role/amplify-rrpgbot-staging-14657-authRole",
+      "Region": "us-east-2",
+      "DeploymentBucketName": "amplify-rrpgbot-staging-14657-deployment",
+      "UnauthRoleName": "amplify-rrpgbot-staging-14657-unauthRole",
+      "StackName": "amplify-rrpgbot-staging-14657",
+      "StackId": "arn:aws:cloudformation:us-east-2:001559332385:stack/amplify-rrpgbot-staging-14657/7285f040-c3c8-11ee-b843-0278ceb6e7ed",
+      "AmplifyAppId": "d1dvyoyh1wji3b"
+    },
+    "categories": {
+      "auth": {
+        "RRPGBot": {}
+      },
+      "storage": {
+        "s3rrpgbotstorage3697542d": {}
+      }
+    }
+  }
+}
