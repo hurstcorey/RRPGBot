@@ -3,7 +3,7 @@
     "@aws-amplify/ui-react": "^6.0.0",
     "aws-cdk-lib": "^2.0.0",
     "constructs": "^10.0.0",
-    "aws-amplify": "^6.6.4",
+    "aws-amplify": "^6.8.2",
     "dotenv": "^16.4.5"
   }
 }
