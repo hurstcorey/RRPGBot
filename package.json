@@ -4,6 +4,6 @@
     "aws-cdk-lib": "^2.0.0",
     "constructs": "^10.0.0",
     "aws-amplify": "^6.6.4",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.7"
   }
 }
