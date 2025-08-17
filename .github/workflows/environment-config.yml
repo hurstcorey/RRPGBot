@@ -1,0 +1,123 @@
+# Environment Configuration Template
+# Copy this file and modify it for your specific environment needs
+
+# Development Environment Configuration
+development:
+  name: "dev"
+  region: "us-east-2"
+  auto_deploy: true
+  branch: "develop"
+  resources:
+    auth:
+      enabled: true
+      mfa: "ON"
+      password_policy:
+        min_length: 12
+        require_lowercase: true
+        require_uppercase: true
+        require_numbers: true
+        require_symbols: true
+    api:
+      enabled: true
+      type: "AppSync"
+      authentication:
+        default: "API_KEY"
+        additional: ["AWS_IAM"]
+    storage:
+      enabled: true
+      type: "S3"
+      access_level: "guest"
+
+# Testing Environment Configuration
+testing:
+  name: "test"
+  region: "us-east-2"
+  auto_deploy: false
+  branch: "main"
+  resources:
+    auth:
+      enabled: true
+      mfa: "OPTIONAL"
+      password_policy:
+        min_length: 8
+        require_lowercase: true
+        require_uppercase: true
+        require_numbers: true
+        require_symbols: false
+    api:
+      enabled: true
+      type: "AppSync"
+      authentication:
+        default: "API_KEY"
+        additional: ["AWS_IAM"]
+    storage:
+      enabled: true
+      type: "S3"
+      access_level: "private"
+
+# Feature Environment Configuration Template
+feature:
+  name: "feature-{branch-name}"
+  region: "us-east-2"
+  auto_deploy: true
+  branch: "{branch-name}"
+  resources:
+    auth:
+      enabled: true
+      mfa: "OFF"
+      password_policy:
+        min_length: 6
+        require_lowercase: false
+        require_uppercase: false
+        require_numbers: false
+        require_symbols: false
+    api:
+      enabled: true
+      type: "AppSync"
+      authentication:
+        default: "API_KEY"
+        additional: []
+    storage:
+      enabled: true
+      type: "S3"
+      access_level: "guest"
+
+# Production Environment Configuration
+production:
+  name: "prod"
+  region: "us-east-2"
+  auto_deploy: false
+  branch: "main"
+  resources:
+    auth:
+      enabled: true
+      mfa: "REQUIRED"
+      password_policy:
+        min_length: 16
+        require_lowercase: true
+        require_uppercase: true
+        require_numbers: true
+        require_symbols: true
+    api:
+      enabled: true
+      type: "AppSync"
+      authentication:
+        default: "AWS_IAM"
+        additional: ["API_KEY"]
+    storage:
+      enabled: true
+      type: "S3"
+      access_level: "private"
+
+# Common Configuration
+common:
+  node_version: "18"
+  amplify_cli_version: "latest"
+  cleanup_on_terminate: true
+  notification_channels:
+    - "github"
+    - "slack"  # If configured
+  cost_alerts:
+    enabled: true
+    threshold: 50  # USD
+  retention_days: 7  # How long to keep terminated environment logs
