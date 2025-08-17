@@ -1,0 +1,213 @@
+name: Terminate Development Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment_name:
+        description: 'Development environment name to terminate'
+        required: true
+        default: 'dev'
+        type: string
+      region:
+        description: 'AWS region'
+        required: true
+        default: 'us-east-2'
+        type: string
+      force_delete:
+        description: 'Force delete even if resources are in use'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  AWS_REGION: ${{ github.event.inputs.region || 'us-east-2' }}
+  ENVIRONMENT_NAME: ${{ github.event.inputs.environment_name || 'dev' }}
+
+jobs:
+  terminate:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Amplify CLI
+        run: npm install -g @aws-amplify/cli
+
+      - name: Check if environment exists
+        id: check_env
+        run: |
+          if amplify env list --json | jq -e ".envs[] | select(.envName == \"${{ env.ENVIRONMENT_NAME }}\")" > /dev/null; then
+            echo "environment_exists=true" >> $GITHUB_OUTPUT
+            echo "Environment ${{ env.ENVIRONMENT_NAME }} found"
+          else
+            echo "environment_exists=false" >> $GITHUB_OUTPUT
+            echo "Environment ${{ env.ENVIRONMENT_NAME }} not found"
+          fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Get environment details
+        if: steps.check_env.outputs.environment_exists == 'true'
+        id: env_details
+        run: |
+          ENV_INFO=$(amplify env get --name ${{ env.ENVIRONMENT_NAME }} --json)
+          STACK_NAME=$(echo $ENV_INFO | jq -r '.awscloudformation.StackName')
+          AMPLIFY_APP_ID=$(echo $ENV_INFO | jq -r '.awscloudformation.AmplifyAppId')
+          
+          echo "stack_name=$STACK_NAME" >> $GITHUB_OUTPUT
+          echo "amplify_app_id=$AMPLIFY_APP_ID" >> $GITHUB_OUTPUT
+          
+          echo "Environment Details:"
+          echo "Stack Name: $STACK_NAME"
+          echo "Amplify App ID: $AMPLIFY_APP_ID"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Remove Amplify environment
+        if: steps.check_env.outputs.environment_exists == 'true'
+        run: |
+          echo "Removing Amplify environment: ${{ env.ENVIRONMENT_NAME }}"
+          amplify env remove ${{ env.ENVIRONMENT_NAME }} --yes
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Clean up CloudFormation stack
+        if: steps.check_env.outputs.environment_exists == 'true'
+        run: |
+          echo "Cleaning up CloudFormation stack: ${{ steps.env_details.outputs.stack_name }}"
+          
+          # Check if stack exists
+          if aws cloudformation describe-stacks \
+            --stack-name ${{ steps.env_details.outputs.stack_name }} \
+            --region ${{ env.AWS_REGION }} > /dev/null 2>&1; then
+            
+            # Delete the stack
+            aws cloudformation delete-stack \
+              --stack-name ${{ steps.env_details.outputs.stack_name }} \
+              --region ${{ env.AWS_REGION }}
+            
+            echo "Stack deletion initiated. This may take several minutes to complete."
+          else
+            echo "Stack ${{ steps.env_details.outputs.stack_name }} not found or already deleted."
+          fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Clean up Amplify App
+        if: steps.check_env.outputs.environment_exists == 'true'
+        run: |
+          echo "Cleaning up Amplify App: ${{ steps.env_details.outputs.amplify_app_id }}"
+          
+          # Check if app exists
+          if aws amplify get-app \
+            --app-id ${{ steps.env_details.outputs.amplify_app_id }} \
+            --region ${{ env.AWS_REGION }} > /dev/null 2>&1; then
+            
+            # Delete the app
+            aws amplify delete-app \
+              --app-id ${{ steps.env_details.outputs.amplify_app_id }} \
+              --region ${{ env.AWS_REGION }}
+            
+            echo "Amplify App deletion initiated."
+          else
+            echo "Amplify App ${{ steps.env_details.outputs.amplify_app_id }} not found or already deleted."
+          fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Clean up S3 deployment bucket
+        if: steps.check_env.outputs.environment_exists == 'true'
+        run: |
+          BUCKET_NAME="amplify-${{ steps.env_details.outputs.amplify_app_id }}-deployment"
+          echo "Cleaning up S3 deployment bucket: $BUCKET_NAME"
+          
+          # Check if bucket exists
+          if aws s3 ls s3://$BUCKET_NAME > /dev/null 2>&1; then
+            # Empty the bucket first
+            aws s3 rm s3://$BUCKET_NAME --recursive
+            
+            # Delete the bucket
+            aws s3 rb s3://$BUCKET_NAME --force
+            
+            echo "S3 deployment bucket deleted."
+          else
+            echo "S3 deployment bucket $BUCKET_NAME not found or already deleted."
+          fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Create termination summary
+        run: |
+          if [ "${{ steps.check_env.outputs.environment_exists }}" == "true" ]; then
+            echo "## 🗑️ Development Environment Terminated Successfully!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Environment:** ${{ env.ENVIRONMENT_NAME }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Region:** ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Stack Name:** ${{ steps.env_details.outputs.stack_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Amplify App ID:** ${{ steps.env_details.outputs.amplify_app_id }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Cleaned up resources:" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Amplify environment" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ CloudFormation stack" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ Amplify App" >> $GITHUB_STEP_SUMMARY
+            echo "- ✅ S3 deployment bucket" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Note:** CloudFormation stack deletion may take several minutes to complete." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ℹ️ Environment Not Found" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Environment **${{ env.ENVIRONMENT_NAME }}** was not found in the Amplify project." >> $GITHUB_STEP_SUMMARY
+            echo "No cleanup actions were performed." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'workflow_dispatch' && steps.check_env.outputs.environment_exists == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commentBody = `## 🗑️ Development Environment Terminated Successfully!
+            
+            **Environment:** ${{ env.ENVIRONMENT_NAME }}
+            **Region:** ${{ env.AWS_REGION }}
+            **Stack Name:** ${{ steps.env_details.outputs.stack_name }}
+            **Amplify App ID:** ${{ steps.env_details.outputs.amplify_app_id }}
+            
+            ### Cleaned up resources:
+            - ✅ Amplify environment
+            - ✅ CloudFormation stack
+            - ✅ Amplify App
+            - ✅ S3 deployment bucket
+            
+            **Note:** CloudFormation stack deletion may take several minutes to complete.`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: commentBody
+            });
