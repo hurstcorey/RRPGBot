@@ -8,8 +8,8 @@ set -e
 # Configuration
 ROLE_NAME="GitHubActionsAmplifyRole"
 POLICY_NAME="GitHubActionsAmplifyPolicy"
-GITHUB_ORG="your-github-org"  # Replace with your GitHub organization
-GITHUB_REPO="your-repo-name"  # Replace with your repository name
+GITHUB_ORG="hurstcorey"  # Replace with your GitHub organization
+GITHUB_REPO="rrpgbot"  # Replace with your repository name
 
 echo "Setting up AWS IAM role for GitHub Actions..."
 
